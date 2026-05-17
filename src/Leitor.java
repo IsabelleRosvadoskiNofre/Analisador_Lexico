@@ -19,6 +19,14 @@ public class Leitor {
         }
     }
 
+    public Leitor(Leitor outro) {
+        this.conteudo = outro.conteudo;
+        this.pos = outro.pos;
+        this.linha = outro.linha;
+        this.parentese = outro.parentese;
+        this.aspas = outro.aspas;
+    }
+
     public Token nextToken(){
         char atual;
         String buffer = "";

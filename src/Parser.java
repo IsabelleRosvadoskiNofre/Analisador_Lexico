@@ -31,13 +31,15 @@ public class Parser {
     //ListaDeclaracoes → Declaracao ListaDeclaracoes’;
     public void ListaDeclaracoes(){
         Declaracao();
-        ListaDeclaracoesLinha();
+        ListaDeclaracoesLinha(); //ListaDeclaracoes'
     }
 
     //ListaDeclaracoes’ → ListaDeclaracoes | lambda;
     public void ListaDeclaracoesLinha(){
+        Leitor scanner_atual = new Leitor(scanner);
         tk = scanner.nextToken();
         if(tk.getTipo() != null) {
+            scanner = scanner_atual;
             ListaDeclaracoes();
         }
     }
@@ -59,6 +61,9 @@ public class Parser {
     //Declaracao → VARIAVEL ':' TipoVar;
     public void Declaracao() {
         tk = scanner.nextToken();
+        if (tk.getTipo() == TipoToken.Delim){
+
+        }
         if(tk.getTipo() != TipoToken.Var){
             throw Expection.ErroSintatico("VARIAVEL", tk.getTxt());
         }
