@@ -17,14 +17,15 @@ public class Parser {
             throw Expection.ErroSintatico("DEC", tk.getTxt());
         }
         ListaDeclaracoes();
-        tk = scanner.nextToken();
-        if(tk.getTipo() != TipoToken.Delim){
-            throw Expection.ErroSintatico(":", tk.getTxt());
-        }
-        tk = scanner.nextToken();
-        if(tk.getTipo() != TipoToken.PCProg){
-            throw Expection.ErroSintatico("PROG", tk.getTxt());
-        }
+        //Se retornou de ListaDeclarações() então é :PROG
+        //tk = scanner.nextToken();
+        //if(tk.getTipo() != TipoToken.Delim){
+        //    throw Expection.ErroSintatico(":", tk.getTxt());
+        //}
+        //tk = scanner.nextToken();
+        //if(tk.getTipo() != TipoToken.PCProg){
+        //    throw Expection.ErroSintatico("PROG", tk.getTxt());
+        //}
         ListaComandos();
     }
 
@@ -38,6 +39,12 @@ public class Parser {
     public void ListaDeclaracoesLinha(){
         Leitor scanner_atual = new Leitor(scanner);
         tk = scanner.nextToken();
+        if (tk.getTipo() == TipoToken.Delim){
+            tk = scanner.nextToken();
+            if (tk.getTipo() == TipoToken.PCProg){
+                return;
+            }
+        }
         if(tk.getTipo() != null) {
             scanner = scanner_atual;
             ListaDeclaracoes();
@@ -61,9 +68,6 @@ public class Parser {
     //Declaracao → VARIAVEL ':' TipoVar;
     public void Declaracao() {
         tk = scanner.nextToken();
-        if (tk.getTipo() == TipoToken.Delim){
-
-        }
         if(tk.getTipo() != TipoToken.Var){
             throw Expection.ErroSintatico("VARIAVEL", tk.getTxt());
         }
