@@ -59,7 +59,9 @@ public class Parser {
 
     //ListaComandos’ →  ListaComandos | lambda;
     public void ListaComandosLinha(){
+        Leitor scanner_atual = new Leitor(scanner);
         tk = scanner.nextToken();
+        scanner = scanner_atual;
         if(tk.getTipo() != null){
             ListaComandos();
         }
@@ -134,9 +136,9 @@ public class Parser {
             if(tk.getTipo() != TipoToken.FechaPar) {
                 throw Expection.ErroSintatico(")", tk.getTxt());
             }
-        }else{
-            throw Expection.ErroSintatico("(", tk.getTxt());
-        }
+        }//else{
+        //    throw Expection.ErroSintatico("(", tk.getTxt());
+        //}
     }
 
     //ExpressaoRelacional → TermoRelacional ExpressaoRelacional’
@@ -190,17 +192,28 @@ public class Parser {
 
     //Comando → ComandoAtribuicao | ComandoEntrada | ComandoSaida | ComandoCondicao | ComandoRepeticao | SubAlgoritmo;
     public void Comando(){
-        ComandoAtribuicao();
-        ComandoEntrada();
-        ComandoSaida();
-        ComandoCondicao();
-        ComandoRepeticao();
-        SubAlgoritmo();
+        //Leitor scanner_atual = new Leitor(scanner);
+        tk = scanner.nextToken();
+        //scanner = scanner_atual; //To-do: mudar isso, repetindo a mesma lógica várias vezes
+
+        if (tk.getTipo() == TipoToken.Var){
+            ComandoAtribuicao();
+        }else if (tk.getTipo() == TipoToken.PCLer){
+            ComandoEntrada();
+        }else if(tk.getTipo() == TipoToken.PCImprimir){
+            ComandoSaida();
+        }else if(tk.getTipo() == TipoToken.PCSe){
+            ComandoCondicao();
+        }else if(tk.getTipo() == TipoToken.PCEnqto){
+            ComandoRepeticao();
+        }else if(tk.getTipo() == TipoToken.PCIni){
+            SubAlgoritmo();
+        }
     }
 
     //ComandoAtribuicao → VARIAVEL ':=' ExpressaoAritmetica;
     public void ComandoAtribuicao(){
-        tk = scanner.nextToken();
+        //tk = scanner.nextToken();
         if(tk.getTipo() != TipoToken.Var){
             throw Expection.ErroSintatico("VARIAVEL", tk.getTxt());
         }
@@ -213,10 +226,10 @@ public class Parser {
 
     //ComandoEntrada → 'LER' VARIAVEL;
     public void ComandoEntrada(){
-        tk = scanner.nextToken();
+        //tk = scanner.nextToken(); //ele já chega em LER
         if(tk.getTipo() != TipoToken.PCLer){
             throw Expection.ErroSintatico("LER", tk.getTxt());
-        }
+        }//To-Do: tirar, já foi verificado antes de vir
         tk = scanner.nextToken();
         if(tk.getTipo() != TipoToken.Var){
             throw Expection.ErroSintatico("VARIAVEL", tk.getTxt());
@@ -225,7 +238,7 @@ public class Parser {
 
     //ComandoSaida → 'IMPRIMIR' ComandoSaida’;
     public void ComandoSaida(){
-        tk = scanner.nextToken();
+        //tk = scanner.nextToken();
         if(tk.getTipo() != TipoToken.PCImprimir){
             throw Expection.ErroSintatico("IMPRIMIR", tk.getTxt());
         }
@@ -242,7 +255,7 @@ public class Parser {
 
     //ComandoCondicao → 'SE' ExpressaoRelacional 'ENTAO' Comando ComandoCondicao’
     public void ComandoCondicao(){
-        tk = scanner.nextToken();
+        //tk = scanner.nextToken();
         if(tk.getTipo() != TipoToken.PCSe){
             throw Expection.ErroSintatico("SE", tk.getTxt());
         }
@@ -265,7 +278,7 @@ public class Parser {
 
     //ComandoRepeticao → 'ENQTO' ExpressaoRelacional Comando;
     public void ComandoRepeticao(){
-        tk = scanner.nextToken();
+        //tk = scanner.nextToken();
         if(tk.getTipo() != TipoToken.PCEnqto){
             throw Expection.ErroSintatico("ENQTO", tk.getTxt());
         }
@@ -275,7 +288,7 @@ public class Parser {
 
     //SubAlgoritmo → 'INI' ListaComandos 'FIM';
     public void SubAlgoritmo(){
-        tk = scanner.nextToken();
+        //tk = scanner.nextToken();
         if(tk.getTipo() != TipoToken.PCIni){
             throw Expection.ErroSintatico("INI", tk.getTxt());
         }
