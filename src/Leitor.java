@@ -19,7 +19,7 @@ public class Leitor {
         }
     }
 
-    public Leitor(Leitor outro) {
+    public Leitor(Leitor outro) { //Guardar posição do scanner
         this.conteudo = outro.conteudo;
         this.pos = outro.pos;
         this.linha = outro.linha;

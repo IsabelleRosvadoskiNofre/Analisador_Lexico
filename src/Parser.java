@@ -41,6 +41,7 @@ public class Parser {
         tk = scanner.nextToken();
         if (tk.getTipo() == TipoToken.Delim){
             tk = scanner.nextToken();
+            //to-do colocar erro no caso de false
             if (tk.getTipo() == TipoToken.PCProg){
                 return;
             }
@@ -94,16 +95,49 @@ public class Parser {
         ExpressaoAritmeticaLinha();
     }
 
-    //ExpressaoAritmetica’ → ‘+’ TermoAritmetico ExpressaoAritmetica’ | ‘-’ TermoAritmetico ExpressaoAritmetica’ | lambda;
-    public void ExpressaoAritmeticaLinha(){
+    //ExpressaoAritmetica’ → '+' TermoAritmetico ExpressaoAritmetica’
+    //        | '-' TermoAritmetico ExpressaoAritmetica’
+    //        | lambda
+
+    public void ExpressaoAritmeticaLinha() {
+        Leitor scanner_atual = new Leitor(scanner);
         tk = scanner.nextToken();
-        if(tk.getTipo() != null){
-            if(tk.getTipo() != TipoToken.OpAritSoma && tk.getTipo() != TipoToken.OpAritSub){
-                throw Expection.ErroSintatico("+ / -", tk.getTxt());
-            }
+        if (tk.getTipo() == TipoToken.OpAritSoma || tk.getTipo() == TipoToken.OpAritSub) {
             TermoAritmetico();
             ExpressaoAritmeticaLinha();
+            return;
         }
+        if (estaNoFollowExpressaoAritmeticaLinha(tk)) {
+            scanner = scanner_atual;
+            return; // lambda
+        }
+        throw Expection.ErroSintatico("expressao aritmetica'", tk.getTxt());
+    }
+
+    private boolean estaNoFollowExpressaoAritmeticaLinha(Token tk) {
+        if (tk == null || tk.getTipo() == null) {
+            return true; // EOF
+        }
+
+        TipoToken tipo = tk.getTipo();
+
+        return tipo == TipoToken.OpRelMenor
+                || tipo == TipoToken.OpRelMenorIgual
+                || tipo == TipoToken.OpRelMaior
+                || tipo == TipoToken.OpRelMaiorIgual
+                || tipo == TipoToken.OpRelIgual
+                || tipo == TipoToken.OpRelDif
+                || tipo == TipoToken.FechaPar
+                || tipo == TipoToken.OpBoolE
+                || tipo == TipoToken.OpBoolOu
+                || tipo == TipoToken.PCEntao
+                || tipo == TipoToken.PCIni
+                || tipo == TipoToken.Var
+                || tipo == TipoToken.PCLer
+                || tipo == TipoToken.PCImprimir
+                || tipo == TipoToken.PCSe
+                || tipo == TipoToken.PCEnqto
+                || tipo == TipoToken.PCFim;
     }
 
     //TermoAritmetico → FatorAritmetico TermoAritmetico’
@@ -112,16 +146,53 @@ public class Parser {
         TermoAritmeticoLinha();
     }
 
-    //TermoAritmetico’ →  ‘*’ FatorAritmetico TermoAritmetico’ | ‘/’ FatorAritmetico TermoAritmetico’ | lambda;
-    public void TermoAritmeticoLinha(){
+    // TermoAritmetico’ → '*' FatorAritmetico TermoAritmetico’
+//                   | '/' FatorAritmetico TermoAritmetico’
+//                   | lambda
+    public void TermoAritmeticoLinha() {
+        Leitor scanner_atual = new Leitor(scanner);
         tk = scanner.nextToken();
-        if(tk.getTipo() != null){
-            if(tk.getTipo() != TipoToken.OpAritMult && tk.getTipo() != TipoToken.OpAritDiv){
-                throw Expection.ErroSintatico("* / /", tk.getTxt());
-            }
+
+        if (tk.getTipo() == TipoToken.OpAritMult || tk.getTipo() == TipoToken.OpAritDiv) {
             FatorAritmetico();
             TermoAritmeticoLinha();
+            return;
         }
+        if (estaNoFollowTermoAritmeticoLinha(tk)) {
+            scanner = scanner_atual;
+            tk = scanner.nextToken();
+            return;
+        }
+        throw Expection.ErroSintatico("termo aritmetico'", tk.getTxt());
+    }
+    //to-do tudo que não tem lambda precisa de erros definidos //to-do eu acho que esse null não funciona
+
+    private boolean estaNoFollowTermoAritmeticoLinha(Token tk) {
+        if (tk == null || tk.getTipo() == null) {
+            return true; // EOF
+        }
+
+        TipoToken tipo = tk.getTipo();
+
+        return tipo == TipoToken.OpAritSoma
+                || tipo == TipoToken.OpAritSub
+                || tipo == TipoToken.OpRelMenor
+                || tipo == TipoToken.OpRelMenorIgual
+                || tipo == TipoToken.OpRelMaior
+                || tipo == TipoToken.OpRelMaiorIgual
+                || tipo == TipoToken.OpRelIgual
+                || tipo == TipoToken.OpRelDif
+                || tipo == TipoToken.FechaPar
+                || tipo == TipoToken.OpBoolE
+                || tipo == TipoToken.OpBoolOu
+                || tipo == TipoToken.PCEntao
+                || tipo == TipoToken.PCIni
+                || tipo == TipoToken.Var
+                || tipo == TipoToken.PCLer
+                || tipo == TipoToken.PCImprimir
+                || tipo == TipoToken.PCSe
+                || tipo == TipoToken.PCEnqto
+                || tipo == TipoToken.PCFim;
     }
 
     //FatorAritmetico → NUMINT| NUMREAL | VARIAVEL | '(' ExpressaoAritmetica ')'
@@ -147,14 +218,31 @@ public class Parser {
         ExpressaoRelacionalLinha();
     }
 
-    //ExpressaoRelacional’ →  OperadorBooleano TermoRelacional ExpressaoRelacional’ | lambda;
-    public void ExpressaoRelacionalLinha(){
+    // ExpressaoRelacional’ → OperadorBooleano TermoRelacional ExpressaoRelacional’ | lambda
+    public void ExpressaoRelacionalLinha() {
+        Leitor scanner_atual = new Leitor(scanner);
         tk = scanner.nextToken();
-        if(tk.getTipo() != null){
-            OperadorBooleano();
+        if (tk.getTipo() == TipoToken.OpBoolE || tk.getTipo() == TipoToken.OpBoolOu) {
             TermoRelacional();
             ExpressaoRelacionalLinha();
+            return;
         }
+        if (estaNoFollowExpressaoRelacionalLinha(tk)) {
+            scanner = scanner_atual;
+            return; // lambda
+        }
+        throw Expection.ErroSintatico("expressao relacional'", tk.getTxt());
+    }
+
+    private boolean estaNoFollowExpressaoRelacionalLinha(Token tk) {
+        if (tk == null || tk.getTipo() == null) {
+            return true; // EOF, se você estiver usando null para fim
+        }
+
+        TipoToken tipo = tk.getTipo();
+
+        return tipo == TipoToken.PCEntao
+                || tipo == TipoToken.PCIni;
     }
 
     //TermoRelacional → FatorAritmetico TermoRelacional’
