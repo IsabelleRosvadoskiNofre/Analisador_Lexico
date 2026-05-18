@@ -6,120 +6,112 @@ public class Parser {
         this.scanner = scanner;
     }
 
-    //Programa → ':' 'DEC' ListaDeclaracoes ':' 'PROG' ListaComandos;
+    // Programa -> ':' 'DEC' ListaDeclaracoes ':' 'PROG' ListaComandos
     public void Programa() {
-        tk = scanner.nextToken();
-        if (tk.getTipo() != TipoToken.Delim){
-            throw Expection.ErroSintatico(":", tk.getTxt());
-        }
-        tk = scanner.nextToken();
-        if(tk.getTipo() != TipoToken.PCDec){
-            throw Expection.ErroSintatico("DEC", tk.getTxt());
-        }
+        consumir(TipoToken.Delim, ":");
+        consumir(TipoToken.PCDec, "DEC");
         ListaDeclaracoes();
-        //Se retornou de ListaDeclarações() então é :PROG
-        //tk = scanner.nextToken();
-        //if(tk.getTipo() != TipoToken.Delim){
-        //    throw Expection.ErroSintatico(":", tk.getTxt());
-        //}
-        //tk = scanner.nextToken();
-        //if(tk.getTipo() != TipoToken.PCProg){
-        //    throw Expection.ErroSintatico("PROG", tk.getTxt());
-        //}
+        consumir(TipoToken.Delim, ":");
+        consumir(TipoToken.PCProg, "PROG");
         ListaComandos();
+        Token restante = olharProximoToken();
+
+        if (restante != null) {
+            throw erroSintatico("fim do arquivo", restante);
+        }
     }
 
-    //ListaDeclaracoes → Declaracao ListaDeclaracoes’;
+    // ListaDeclaracoes -> Declaracao ListaDeclaracoes'
     public void ListaDeclaracoes(){
         Declaracao();
-        ListaDeclaracoesLinha(); //ListaDeclaracoes'
+        ListaDeclaracoesLinha();
     }
 
-    //ListaDeclaracoes’ → ListaDeclaracoes | lambda;
+    // ListaDeclaracoes' -> ListaDeclaracoes | lambda
     public void ListaDeclaracoesLinha(){
-        Leitor scanner_atual = new Leitor(scanner);
-        tk = scanner.nextToken();
-        if (tk.getTipo() == TipoToken.Delim){
-            tk = scanner.nextToken();
-            //to-do colocar erro no caso de false
-            if (tk.getTipo() == TipoToken.PCProg){
-                return;
-            }
-        }
-        if(tk.getTipo() != null) {
-            scanner = scanner_atual;
+        Token proximo = olharProximoToken();
+
+        if (eh(proximo, TipoToken.Var)) {
             ListaDeclaracoes();
+            return;
         }
+
+        if (eh(proximo, TipoToken.Delim)) {
+            return;
+        }
+
+        throw erroSintatico("VARIAVEL ou :", proximo);
     }
 
-    //ListaComandos → Comando ListaComandos’;
+    // ListaComandos -> Comando ListaComandos'
     public void ListaComandos() {
         Comando();
         ListaComandosLinha();
     }
 
-    //ListaComandos’ →  ListaComandos | lambda;
+    // ListaComandos' -> ListaComandos | lambda
     public void ListaComandosLinha(){
-        Leitor scanner_atual = new Leitor(scanner);
-        tk = scanner.nextToken();
-        scanner = scanner_atual;
-        if(tk.getTipo() != null){
+        Token proximo = olharProximoToken();
+
+        if (iniciaComando(proximo)) {
             ListaComandos();
+            return;
         }
+
+        if (proximo == null || eh(proximo, TipoToken.PCFim)) {
+            return;
+        }
+
+        throw erroSintatico("COMANDO", proximo);
     }
 
-    //Declaracao → VARIAVEL ':' TipoVar;
+    // Declaracao -> VARIAVEL ':' TipoVar
     public void Declaracao() {
-        tk = scanner.nextToken();
-        if(tk.getTipo() != TipoToken.Var){
-            throw Expection.ErroSintatico("VARIAVEL", tk.getTxt());
-        }
-        tk = scanner.nextToken();
-        if(tk.getTipo() != TipoToken.Delim){
-            throw Expection.ErroSintatico(":", tk.getTxt());
-        }
+        consumir(TipoToken.Var, "VARIAVEL");
+        consumir(TipoToken.Delim, ":");
         TipoVar();
     }
 
-    //TipoVar → 'INT' | 'REAL';
+    // TipoVar -> 'INT' | 'REAL'
     public void TipoVar(){
-        tk = scanner.nextToken();
-        if(tk.getTipo() != TipoToken.PCInt && tk.getTipo() != TipoToken.PCReal){
-            throw Expection.ErroSintatico("INT / REAL", tk.getTxt());
+        tk = proximoToken();
+        if(!eh(tk, TipoToken.PCInt) && !eh(tk, TipoToken.PCReal)){
+            throw erroSintatico("INT / REAL", tk);
         }
     }
 
-    //ExpressaoAritmetica → TermoAritmetico ExpressaoAritmetica’
+    // ExpressaoAritmetica -> TermoAritmetico ExpressaoAritmetica'
     public void ExpressaoAritmetica(){
         TermoAritmetico();
         ExpressaoAritmeticaLinha();
     }
 
-    //ExpressaoAritmetica’ → '+' TermoAritmetico ExpressaoAritmetica’
-    //        | '-' TermoAritmetico ExpressaoAritmetica’
-    //        | lambda
-
+    // ExpressaoAritmetica' -> '+' TermoAritmetico ExpressaoAritmetica'
+    //                        | '-' TermoAritmetico ExpressaoAritmetica'
+    //                        | lambda
     public void ExpressaoAritmeticaLinha() {
-        Leitor scanner_atual = new Leitor(scanner);
-        tk = scanner.nextToken();
-        if (tk.getTipo() == TipoToken.OpAritSoma || tk.getTipo() == TipoToken.OpAritSub) {
+        Token proximo = olharProximoToken();
+
+        if (eh(proximo, TipoToken.OpAritSoma) || eh(proximo, TipoToken.OpAritSub)) {
+            proximoToken();
             TermoAritmetico();
             ExpressaoAritmeticaLinha();
             return;
         }
-        if (estaNoFollowExpressaoAritmeticaLinha(tk)) {
-            scanner = scanner_atual;
-            return; // lambda
+
+        if (estaNoFollowExpressaoAritmeticaLinha(proximo)) {
+            return;
         }
-        throw Expection.ErroSintatico("expressao aritmetica'", tk.getTxt());
+
+        throw erroSintatico("expressao aritmetica'", proximo);
     }
 
-    private boolean estaNoFollowExpressaoAritmeticaLinha(Token tk) {
-        if (tk == null || tk.getTipo() == null) {
-            return true; // EOF
+    private boolean estaNoFollowExpressaoAritmeticaLinha(Token token) {
+        if (token == null) {
+            return true;
         }
 
-        TipoToken tipo = tk.getTipo();
+        TipoToken tipo = token.getTipo();
 
         return tipo == TipoToken.OpRelMenor
                 || tipo == TipoToken.OpRelMenorIgual
@@ -131,259 +123,281 @@ public class Parser {
                 || tipo == TipoToken.OpBoolE
                 || tipo == TipoToken.OpBoolOu
                 || tipo == TipoToken.PCEntao
-                || tipo == TipoToken.PCIni
-                || tipo == TipoToken.Var
-                || tipo == TipoToken.PCLer
-                || tipo == TipoToken.PCImprimir
-                || tipo == TipoToken.PCSe
-                || tipo == TipoToken.PCEnqto
-                || tipo == TipoToken.PCFim;
+                || tipo == TipoToken.PCSenao
+                || tipo == TipoToken.PCFim
+                || iniciaComando(token);
     }
 
-    //TermoAritmetico → FatorAritmetico TermoAritmetico’
+    // TermoAritmetico -> FatorAritmetico TermoAritmetico'
     public void TermoAritmetico(){
         FatorAritmetico();
         TermoAritmeticoLinha();
     }
 
-    // TermoAritmetico’ → '*' FatorAritmetico TermoAritmetico’
-//                   | '/' FatorAritmetico TermoAritmetico’
-//                   | lambda
+    // TermoAritmetico' -> '*' FatorAritmetico TermoAritmetico'
+    //                    | '/' FatorAritmetico TermoAritmetico'
+    //                    | lambda
     public void TermoAritmeticoLinha() {
-        Leitor scanner_atual = new Leitor(scanner);
-        tk = scanner.nextToken();
+        Token proximo = olharProximoToken();
 
-        if (tk.getTipo() == TipoToken.OpAritMult || tk.getTipo() == TipoToken.OpAritDiv) {
+        if (eh(proximo, TipoToken.OpAritMult) || eh(proximo, TipoToken.OpAritDiv)) {
+            proximoToken();
             FatorAritmetico();
             TermoAritmeticoLinha();
             return;
         }
-        if (estaNoFollowTermoAritmeticoLinha(tk)) {
-            scanner = scanner_atual;
-            tk = scanner.nextToken();
+
+        if (estaNoFollowTermoAritmeticoLinha(proximo)) {
             return;
         }
-        throw Expection.ErroSintatico("termo aritmetico'", tk.getTxt());
-    }
-    //to-do tudo que não tem lambda precisa de erros definidos //to-do eu acho que esse null não funciona
 
-    private boolean estaNoFollowTermoAritmeticoLinha(Token tk) {
-        if (tk == null || tk.getTipo() == null) {
-            return true; // EOF
-        }
-
-        TipoToken tipo = tk.getTipo();
-
-        return tipo == TipoToken.OpAritSoma
-                || tipo == TipoToken.OpAritSub
-                || tipo == TipoToken.OpRelMenor
-                || tipo == TipoToken.OpRelMenorIgual
-                || tipo == TipoToken.OpRelMaior
-                || tipo == TipoToken.OpRelMaiorIgual
-                || tipo == TipoToken.OpRelIgual
-                || tipo == TipoToken.OpRelDif
-                || tipo == TipoToken.FechaPar
-                || tipo == TipoToken.OpBoolE
-                || tipo == TipoToken.OpBoolOu
-                || tipo == TipoToken.PCEntao
-                || tipo == TipoToken.PCIni
-                || tipo == TipoToken.Var
-                || tipo == TipoToken.PCLer
-                || tipo == TipoToken.PCImprimir
-                || tipo == TipoToken.PCSe
-                || tipo == TipoToken.PCEnqto
-                || tipo == TipoToken.PCFim;
+        throw erroSintatico("termo aritmetico'", proximo);
     }
 
-    //FatorAritmetico → NUMINT| NUMREAL | VARIAVEL | '(' ExpressaoAritmetica ')'
+    private boolean estaNoFollowTermoAritmeticoLinha(Token token) {
+        return token == null
+                || eh(token, TipoToken.OpAritSoma)
+                || eh(token, TipoToken.OpAritSub)
+                || estaNoFollowExpressaoAritmeticaLinha(token);
+    }
+
+    // FatorAritmetico -> NUMINT | NUMREAL | VARIAVEL | '(' ExpressaoAritmetica ')'
     public void FatorAritmetico(){
-        tk = scanner.nextToken();
-        if(tk.getTipo() != TipoToken.NumInt && tk.getTipo() != TipoToken.NumReal && tk.getTipo() != TipoToken.Var && tk.getTipo() != TipoToken.AbrePar){
-            throw Expection.ErroSintatico("NumInt / NumReal / Variável / (", tk.getTxt());
+        tk = proximoToken();
+
+        if (eh(tk, TipoToken.NumInt) || eh(tk, TipoToken.NumReal) || eh(tk, TipoToken.Var)) {
+            return;
         }
-        if(tk.getTipo() == TipoToken.AbrePar) {
+
+        if(eh(tk, TipoToken.AbrePar)) {
             ExpressaoAritmetica();
-            tk = scanner.nextToken();
-            if(tk.getTipo() != TipoToken.FechaPar) {
-                throw Expection.ErroSintatico(")", tk.getTxt());
-            }
-        }//else{
-        //    throw Expection.ErroSintatico("(", tk.getTxt());
-        //}
+            consumir(TipoToken.FechaPar, ")");
+            return;
+        }
+
+        throw erroSintatico("NumInt / NumReal / VARIAVEL / (", tk);
     }
 
-    //ExpressaoRelacional → TermoRelacional ExpressaoRelacional’
+    // ExpressaoRelacional -> TermoRelacional ExpressaoRelacional'
     public void ExpressaoRelacional(){
         TermoRelacional();
         ExpressaoRelacionalLinha();
     }
 
-    // ExpressaoRelacional’ → OperadorBooleano TermoRelacional ExpressaoRelacional’ | lambda
+    // ExpressaoRelacional' -> OperadorBooleano TermoRelacional ExpressaoRelacional' | lambda
     public void ExpressaoRelacionalLinha() {
-        Leitor scanner_atual = new Leitor(scanner);
-        tk = scanner.nextToken();
-        if (tk.getTipo() == TipoToken.OpBoolE || tk.getTipo() == TipoToken.OpBoolOu) {
+        Token proximo = olharProximoToken();
+
+        if (eh(proximo, TipoToken.OpBoolE) || eh(proximo, TipoToken.OpBoolOu)) {
+            proximoToken();
             TermoRelacional();
             ExpressaoRelacionalLinha();
             return;
         }
-        if (estaNoFollowExpressaoRelacionalLinha(tk)) {
-            scanner = scanner_atual;
-            return; // lambda
-        }
-        throw Expection.ErroSintatico("expressao relacional'", tk.getTxt());
-    }
 
-    private boolean estaNoFollowExpressaoRelacionalLinha(Token tk) {
-        if (tk == null || tk.getTipo() == null) {
-            return true; // EOF, se você estiver usando null para fim
+        if (estaNoFollowExpressaoRelacionalLinha(proximo)) {
+            return;
         }
 
-        TipoToken tipo = tk.getTipo();
-
-        return tipo == TipoToken.PCEntao
-                || tipo == TipoToken.PCIni;
+        throw erroSintatico("expressao relacional'", proximo);
     }
 
-    //TermoRelacional → FatorAritmetico TermoRelacional’
+    private boolean estaNoFollowExpressaoRelacionalLinha(Token token) {
+        return token == null
+                || eh(token, TipoToken.PCEntao)
+                || iniciaComando(token);
+    }
+
+    // TermoRelacional -> ExpressaoAritmetica TermoRelacional'
     public void TermoRelacional(){
-        FatorAritmetico();
+        ExpressaoAritmetica();
         TermoRelacionalLinha();
     }
 
-    //TermoRelacional’ → OP_REL ExpressaoAritmetica | lambda
+    // TermoRelacional' -> OP_REL ExpressaoAritmetica | lambda
     public void TermoRelacionalLinha(){
-        tk = scanner.nextToken();
-        if(tk.getTipo() != null){
-            OP_REL();
+        Token proximo = olharProximoToken();
+
+        if (ehOperadorRelacional(proximo)) {
+            proximoToken();
             ExpressaoAritmetica();
+            return;
         }
+
+        if (estaNoFollowTermoRelacionalLinha(proximo)) {
+            return;
+        }
+
+        throw erroSintatico("OP_REL", proximo);
+    }
+
+    private boolean estaNoFollowTermoRelacionalLinha(Token token) {
+        return token == null
+                || eh(token, TipoToken.OpBoolE)
+                || eh(token, TipoToken.OpBoolOu)
+                || estaNoFollowExpressaoRelacionalLinha(token);
     }
 
     public void OP_REL(){
-        if(tk.getTipo() != TipoToken.OpRelMenor &&
-           tk.getTipo() != TipoToken.OpRelMenorIgual &&
-           tk.getTipo() != TipoToken.OpRelMaior &&
-           tk.getTipo() != TipoToken.OpRelMaiorIgual &&
-           tk.getTipo() != TipoToken.OpRelIgual &&
-           tk.getTipo() != TipoToken.OpRelDif){
-            throw Expection.ErroSintatico("OP_REL", tk.getTxt());
+        if(!ehOperadorRelacional(tk)){
+            throw erroSintatico("OP_REL", tk);
         }
     }
 
-    //OperadorBooleano → 'E' | 'OU';
+    // OperadorBooleano -> 'E' | 'OU'
     public void OperadorBooleano(){
-        if(tk.getTipo() != TipoToken.OpBoolE && tk.getTipo() != TipoToken.OpBoolOu){
-            throw Expection.ErroSintatico("E / OU", tk.getTxt());
+        if(!eh(tk, TipoToken.OpBoolE) && !eh(tk, TipoToken.OpBoolOu)){
+            throw erroSintatico("E / OU", tk);
         }
     }
 
-    //Comando → ComandoAtribuicao | ComandoEntrada | ComandoSaida | ComandoCondicao | ComandoRepeticao | SubAlgoritmo;
+    // Comando -> ComandoAtribuicao | ComandoEntrada | ComandoSaida
+    //          | ComandoCondicao | ComandoRepeticao | SubAlgoritmo
     public void Comando(){
-        //Leitor scanner_atual = new Leitor(scanner);
-        tk = scanner.nextToken();
-        //scanner = scanner_atual; //To-do: mudar isso, repetindo a mesma lógica várias vezes
+        tk = proximoToken();
 
-        if (tk.getTipo() == TipoToken.Var){
+        if (eh(tk, TipoToken.Var)){
             ComandoAtribuicao();
-        }else if (tk.getTipo() == TipoToken.PCLer){
+        }else if (eh(tk, TipoToken.PCLer)){
             ComandoEntrada();
-        }else if(tk.getTipo() == TipoToken.PCImprimir){
+        }else if(eh(tk, TipoToken.PCImprimir)){
             ComandoSaida();
-        }else if(tk.getTipo() == TipoToken.PCSe){
+        }else if(eh(tk, TipoToken.PCSe)){
             ComandoCondicao();
-        }else if(tk.getTipo() == TipoToken.PCEnqto){
+        }else if(eh(tk, TipoToken.PCEnqto)){
             ComandoRepeticao();
-        }else if(tk.getTipo() == TipoToken.PCIni){
+        }else if(eh(tk, TipoToken.PCIni)){
             SubAlgoritmo();
+        }else {
+            throw erroSintatico("COMANDO", tk);
         }
     }
 
-    //ComandoAtribuicao → VARIAVEL ':=' ExpressaoAritmetica;
+    // ComandoAtribuicao -> VARIAVEL ':=' ExpressaoAritmetica
     public void ComandoAtribuicao(){
-        //tk = scanner.nextToken();
-        if(tk.getTipo() != TipoToken.Var){
-            throw Expection.ErroSintatico("VARIAVEL", tk.getTxt());
+        if(!eh(tk, TipoToken.Var)){
+            throw erroSintatico("VARIAVEL", tk);
         }
-        tk = scanner.nextToken();
-        if(tk.getTipo() != TipoToken.Atrib){
-            throw Expection.ErroSintatico(":=", tk.getTxt());
-        }
+
+        consumir(TipoToken.Atrib, ":=");
         ExpressaoAritmetica();
     }
 
-    //ComandoEntrada → 'LER' VARIAVEL;
+    // ComandoEntrada -> 'LER' VARIAVEL
     public void ComandoEntrada(){
-        //tk = scanner.nextToken(); //ele já chega em LER
-        if(tk.getTipo() != TipoToken.PCLer){
-            throw Expection.ErroSintatico("LER", tk.getTxt());
-        }//To-Do: tirar, já foi verificado antes de vir
-        tk = scanner.nextToken();
-        if(tk.getTipo() != TipoToken.Var){
-            throw Expection.ErroSintatico("VARIAVEL", tk.getTxt());
+        if(!eh(tk, TipoToken.PCLer)){
+            throw erroSintatico("LER", tk);
         }
+
+        consumir(TipoToken.Var, "VARIAVEL");
     }
 
-    //ComandoSaida → 'IMPRIMIR' ComandoSaida’;
+    // ComandoSaida -> 'IMPRIMIR' ComandoSaida'
     public void ComandoSaida(){
-        //tk = scanner.nextToken();
-        if(tk.getTipo() != TipoToken.PCImprimir){
-            throw Expection.ErroSintatico("IMPRIMIR", tk.getTxt());
+        if(!eh(tk, TipoToken.PCImprimir)){
+            throw erroSintatico("IMPRIMIR", tk);
         }
+
         ComandoSaidaLinha();
     }
 
-    //ComandoSaida’ → VARIAVEL | CADEIA;
+    // ComandoSaida' -> VARIAVEL | CADEIA
     public void ComandoSaidaLinha(){
-        tk = scanner.nextToken();
-        if(tk.getTipo() != TipoToken.Var && tk.getTipo() != TipoToken.Cadeia){
-            throw Expection.ErroSintatico("VARIAVEL / CADEIA", tk.getTxt());
+        tk = proximoToken();
+
+        if(!eh(tk, TipoToken.Var) && !eh(tk, TipoToken.Cadeia)){
+            throw erroSintatico("VARIAVEL / CADEIA", tk);
         }
     }
 
-    //ComandoCondicao → 'SE' ExpressaoRelacional 'ENTAO' Comando ComandoCondicao’
+    // ComandoCondicao -> 'SE' ExpressaoRelacional 'ENTAO' Comando ComandoCondicao'
     public void ComandoCondicao(){
-        //tk = scanner.nextToken();
-        if(tk.getTipo() != TipoToken.PCSe){
-            throw Expection.ErroSintatico("SE", tk.getTxt());
+        if(!eh(tk, TipoToken.PCSe)){
+            throw erroSintatico("SE", tk);
         }
+
         ExpressaoRelacional();
-        tk = scanner.nextToken();
-        if(tk.getTipo() != TipoToken.PCEntao){
-            throw Expection.ErroSintatico("ENTAO", tk.getTxt());
-        }
+        consumir(TipoToken.PCEntao, "ENTAO");
         Comando();
         ComandoCondicaoLinha();
     }
 
-    //ComandoCondicao’ → ‘SENAO’ Comando | lambda;
+    // ComandoCondicao' -> 'SENAO' Comando | lambda
     public void ComandoCondicaoLinha(){
-        tk = scanner.nextToken();
-        if(tk.getTipo() == TipoToken.PCSenao){
+        Token proximo = olharProximoToken();
+
+        if(eh(proximo, TipoToken.PCSenao)){
+            proximoToken();
             Comando();
         }
     }
 
-    //ComandoRepeticao → 'ENQTO' ExpressaoRelacional Comando;
+    // ComandoRepeticao -> 'ENQTO' ExpressaoRelacional Comando
     public void ComandoRepeticao(){
-        //tk = scanner.nextToken();
-        if(tk.getTipo() != TipoToken.PCEnqto){
-            throw Expection.ErroSintatico("ENQTO", tk.getTxt());
+        if(!eh(tk, TipoToken.PCEnqto)){
+            throw erroSintatico("ENQTO", tk);
         }
+
         ExpressaoRelacional();
         Comando();
     }
 
-    //SubAlgoritmo → 'INI' ListaComandos 'FIM';
+    // SubAlgoritmo -> 'INI' ListaComandos 'FIM'
     public void SubAlgoritmo(){
-        //tk = scanner.nextToken();
-        if(tk.getTipo() != TipoToken.PCIni){
-            throw Expection.ErroSintatico("INI", tk.getTxt());
+        if(!eh(tk, TipoToken.PCIni)){
+            throw erroSintatico("INI", tk);
         }
+
         ListaComandos();
+        consumir(TipoToken.PCFim, "FIM");
+    }
+
+    private Token proximoToken() {
         tk = scanner.nextToken();
-        if(tk.getTipo() != TipoToken.PCFim){
-            throw Expection.ErroSintatico("FIM", tk.getTxt());
+        return tk;
+    }
+
+    private Token olharProximoToken() {
+        Leitor.Estado estado = scanner.salvarEstado();
+        Token token = scanner.nextToken();
+        scanner.restaurarEstado(estado);
+        return token;
+    }
+
+    private Token consumir(TipoToken tipo, String esperado) {
+        Token token = proximoToken();
+
+        if (!eh(token, tipo)) {
+            throw erroSintatico(esperado, token);
         }
+
+        return token;
+    }
+
+    private boolean eh(Token token, TipoToken tipo) {
+        return token != null && token.getTipo() == tipo;
+    }
+
+    private boolean iniciaComando(Token token) {
+        return eh(token, TipoToken.Var)
+                || eh(token, TipoToken.PCLer)
+                || eh(token, TipoToken.PCImprimir)
+                || eh(token, TipoToken.PCSe)
+                || eh(token, TipoToken.PCEnqto)
+                || eh(token, TipoToken.PCIni);
+    }
+
+    private boolean ehOperadorRelacional(Token token) {
+        return eh(token, TipoToken.OpRelMenor)
+                || eh(token, TipoToken.OpRelMenorIgual)
+                || eh(token, TipoToken.OpRelMaior)
+                || eh(token, TipoToken.OpRelMaiorIgual)
+                || eh(token, TipoToken.OpRelIgual)
+                || eh(token, TipoToken.OpRelDif);
+    }
+
+    private Expection erroSintatico(String esperado, Token recebido) {
+        String textoRecebido = recebido == null ? "fim do arquivo" : recebido.getTxt();
+        return Expection.ErroSintatico(esperado, textoRecebido);
     }
 }

@@ -27,6 +27,31 @@ public class Leitor {
         this.aspas = outro.aspas;
     }
 
+    public Estado salvarEstado() {
+        return new Estado(pos, linha, parentese, aspas);
+    }
+
+    public void restaurarEstado(Estado estado) {
+        pos = estado.pos;
+        linha = estado.linha;
+        parentese = estado.parentese;
+        aspas = estado.aspas;
+    }
+
+    public static class Estado {
+        private final int pos;
+        private final int linha;
+        private final boolean parentese;
+        private final boolean aspas;
+
+        private Estado(int pos, int linha, boolean parentese, boolean aspas) {
+            this.pos = pos;
+            this.linha = linha;
+            this.parentese = parentese;
+            this.aspas = aspas;
+        }
+    }
+
     public Token nextToken(){
         char atual;
         String buffer = "";
