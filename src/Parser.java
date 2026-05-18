@@ -184,6 +184,20 @@ public class Parser {
         ExpressaoRelacionalLinha();
     }
 
+    // Condicao -> '(' ExpressaoRelacional ')' | ExpressaoRelacional
+    public void Condicao() {
+        Token proximo = olharProximoToken();
+
+        if (eh(proximo, TipoToken.AbrePar)) {
+            consumir(TipoToken.AbrePar, "(");
+            ExpressaoRelacional();
+            consumir(TipoToken.FechaPar, ")");
+            return;
+        }
+
+        ExpressaoRelacional();
+    }
+
     // ExpressaoRelacional' -> OperadorBooleano TermoRelacional ExpressaoRelacional' | lambda
     public void ExpressaoRelacionalLinha() {
         Token proximo = olharProximoToken();
@@ -205,6 +219,7 @@ public class Parser {
     private boolean estaNoFollowExpressaoRelacionalLinha(Token token) {
         return token == null
                 || eh(token, TipoToken.PCEntao)
+                || eh(token, TipoToken.FechaPar)
                 || iniciaComando(token);
     }
 
@@ -311,12 +326,13 @@ public class Parser {
     }
 
     // ComandoCondicao -> 'SE' ExpressaoRelacional 'ENTAO' Comando ComandoCondicao'
+    // ComandoCondicao -> 'SE' Condicao 'ENTAO' Comando ComandoCondicao'
     public void ComandoCondicao(){
         if(!eh(tk, TipoToken.PCSe)){
             throw erroSintatico("SE", tk);
         }
 
-        ExpressaoRelacional();
+        Condicao();
         consumir(TipoToken.PCEntao, "ENTAO");
         Comando();
         ComandoCondicaoLinha();
@@ -333,15 +349,15 @@ public class Parser {
     }
 
     // ComandoRepeticao -> 'ENQTO' ExpressaoRelacional Comando
+// ComandoRepeticao -> 'ENQTO' Condicao Comando
     public void ComandoRepeticao(){
         if(!eh(tk, TipoToken.PCEnqto)){
             throw erroSintatico("ENQTO", tk);
         }
 
-        ExpressaoRelacional();
+        Condicao();
         Comando();
     }
-
     // SubAlgoritmo -> 'INI' ListaComandos 'FIM'
     public void SubAlgoritmo(){
         if(!eh(tk, TipoToken.PCIni)){

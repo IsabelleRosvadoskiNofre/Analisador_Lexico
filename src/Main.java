@@ -10,7 +10,7 @@ public class Main {
     public static void main(String[] args){
         try{
             //recebe o arquivo de leitura
-            Leitor ler = new Leitor("testes/sintatico/programa1.gyh");
+            Leitor ler = new Leitor("testes/sintatico/programa2.gyh");
             Parser ps = new Parser(ler);
 
             ps.Programa();
